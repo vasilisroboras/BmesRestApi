@@ -54,6 +54,15 @@ namespace BmesRestApi
             services.AddTransient<ICartRepository, CartRepository>();
             services.AddTransient<ICartItemRepository, CartItemRepository>();
             services.AddTransient<ICartService, CartService>();
+            services.AddTransient<IAddressRepository, AddressRepository>();
+            services.AddTransient<IPersonRepository, PersonRepository>();
+            services.AddTransient<ICustomerRepository, CustomerRepository>();
+            services.AddTransient<IOrderRepository, OrderRepository>();
+            services.AddTransient<IOrderItemRepository, OrderItemRepository>();
+            services.AddTransient<ICheckoutService, CheckoutService>();
+            services.AddTransient<IOrderService, OrderService>();
+
+
 
 
             //its a microsoft package that come automatically
