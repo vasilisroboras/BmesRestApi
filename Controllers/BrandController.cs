@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BmesRestApi.Controllers
 {
-    
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class BrandController : ControllerBase
@@ -17,7 +17,7 @@ namespace BmesRestApi.Controllers
             _brandService = brandService;
         }
 
-        
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public ActionResult<GetBrandResponse> GetBrand(long id)
         {
@@ -29,7 +29,7 @@ namespace BmesRestApi.Controllers
             return getBrandResponse;
         }
 
-        
+        [AllowAnonymous]
         [HttpGet()]
         public ActionResult<FetchBrandsResponse> GetBrands()
         {
@@ -38,7 +38,7 @@ namespace BmesRestApi.Controllers
             return fetchBrandsResponse;
         }
 
-        
+        [Authorize(Roles = "Administrator")]
         [HttpPost]
         public ActionResult<CreateBrandResponse> PostBrand(CreateBrandRequest createBrandRequest) //Model binding
         {
@@ -46,7 +46,7 @@ namespace BmesRestApi.Controllers
             return createBrandResponse;
         }
 
-        
+        [Authorize(Roles = "Administrator")]
         [HttpPut()]
         public ActionResult<UpdateBrandResponse> PutBrand(UpdateBrandRequest updateBrandRequest)
         {
@@ -54,7 +54,7 @@ namespace BmesRestApi.Controllers
             return updateBrandResponse;
         }
 
-        
+        [Authorize(Roles = "Administrator")]
         [HttpDelete("{id}")]
         public ActionResult<DeleteBrandResponse> DeleteBrand(long id)
         {

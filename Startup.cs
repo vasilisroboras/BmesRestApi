@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BmesRestApi.Database;
+using BmesRestApi.Infrastructure;
+using BmesRestApi.Models.Shared;
 using BmesRestApi.Repositories;
 using BmesRestApi.Repositories.Implementations;
 using BmesRestApi.Services;
@@ -11,6 +13,7 @@ using BmesRestApi.Services.Implementations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -35,15 +38,47 @@ namespace BmesRestApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Building Materials E-Store", Version = "v1" });
+
+                c.AddSecurityDefinition("Bearer",
+                    new OpenApiSecurityScheme
+                    {
+                        Description = "JWT Authorization header using the Bearer scheme.",
+                        Type = SecuritySchemeType.Http,
+                        Scheme = "bearer"
+                    });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement{
+                    {
+                        new OpenApiSecurityScheme{
+                            Reference = new OpenApiReference{
+                                Id = "Bearer",
+                                Type = ReferenceType.SecurityScheme
+                            }
+                        },
+                        new List<string>()
+                    }
+                });
             });
 
             services.AddSession();
             services.AddMemoryCache();
             services.AddDistributedMemoryCache();
             services.AddDbContext<BmesDbContext>(options => options.UseSqlite(Configuration["Data:BmesApi:ConnectionString"]));
+            services.AddDbContext<BmesIdentityDbContext>(options =>
+                options.UseSqlite(
+                    Configuration["Data:BmesIdentity:ConnectionString"]));
+
+            services.AddIdentity<User, IdentityRole>()
+                .AddEntityFrameworkStores<BmesIdentityDbContext>();
+
+            //Extension method that configured JWT
+            services.AddJwtAuth(Configuration);
+
+
             services.AddTransient<IBrandRepository, BrandRepository>();
             services.AddTransient<ICategoryRepository, CategoryRepository>();
             services.AddTransient<IProductRepository, ProductRepository>();
@@ -61,6 +96,9 @@ namespace BmesRestApi
             services.AddTransient<IOrderItemRepository, OrderItemRepository>();
             services.AddTransient<ICheckoutService, CheckoutService>();
             services.AddTransient<IOrderService, OrderService>();
+
+            services.AddTransient<IAuthRepository, AuthRepository>();
+            services.AddTransient<IAuthService, AuthService>();
 
 
 
@@ -89,11 +127,24 @@ namespace BmesRestApi
             app.UseSession();
 
             app.UseAuthorization();
+            app.UseAuthentication();
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
             });
+
+            // Create a service scope to get an BmesIdentityDbContext instance using DI
+            using (var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
+            {
+                var dbContext = serviceScope.ServiceProvider.GetService<BmesIdentityDbContext>();
+                var roleManager = serviceScope.ServiceProvider.GetService<RoleManager<IdentityRole>>();
+                var userManager = serviceScope.ServiceProvider.GetService<UserManager<User>>();
+                // Create the Db if it doesn't exist and applies any pending migration.
+                //dbContext.Database.Migrate();
+
+                IdentityDbSeeder.Seed(dbContext, roleManager, userManager);
+            }
         }
     }
 }
